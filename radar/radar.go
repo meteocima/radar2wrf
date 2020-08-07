@@ -148,9 +148,10 @@ func (dims *Dimensions) FlattenLanLot(data *CappiDataset) {
 
 // Dimensions ...
 type Dimensions struct {
-	Lat      []float32
-	Lon      []float32
-	Instants []time.Time
+	Lat                    []float32
+	Lon                    []float32
+	Instants               []time.Time
+	Cappi2, Cappi3, Cappi5 []float32
 }
 
 func filenameForVar(dirname, varname string) string {
@@ -172,6 +173,48 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 
 }
 
+func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
+	maxLon := dims.Lat[len(dims.Lat)-1]
+	maxLat := dims.Lon[len(dims.Lon)-1]
+
+	instant := dims.Instants[0].Format("2006-01-02_15:04")
+
+	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
+	fmt.Fprintf(result, "#-----------------#\n")
+	fmt.Fprintf(result, "\n")
+	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
+		maxLat,
+		maxLon,
+		instant,
+		len(dims.Lat)*len(dims.Lon),
+	)
+	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
+	fmt.Fprintf(result, "\n")
+
+	for x, lon := range dims.Lon {
+		for y := len(dims.Lat) - 1; y >= 0; y-- {
+			lat := dims.Lat[y]
+			//for y, lat := range dims.Lat {
+			f2 := dims.Cappi2[x+y*len(dims.Lon)]
+			f3 := dims.Cappi3[x+y*len(dims.Lon)]
+			f5 := dims.Cappi5[x+y*len(dims.Lon)]
+
+			fmt.Fprintf(
+				result,
+				"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
+				instant,
+				lat,
+				lon)
+
+			writeRadarData(result, f2, 2000.0)
+			writeRadarData(result, f3, 3000.0)
+			writeRadarData(result, f5, 5000.0)
+		}
+	}
+
+	result.Close()
+}
+
 // Convert ...
 func Convert(dirname string) (io.Reader, error) {
 	ds := &CappiDataset{}
@@ -184,15 +227,15 @@ func Convert(dirname string) (io.Reader, error) {
 	dims.Instants = ds.ReadTimeVar("time")
 	dims.FlattenLanLot(ds)
 
-	cappi2 := ds.ReadFloatVar("CAPPI2")
+	dims.Cappi2 = ds.ReadFloatVar("CAPPI2")
 	ds.Close()
 
 	ds.Open(filenameForVar(dirname, "CAPPI3"))
-	cappi3 := ds.ReadFloatVar("CAPPI3")
+	dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
 	ds.Close()
 
 	ds.Open(filenameForVar(dirname, "CAPPI5"))
-	cappi5 := ds.ReadFloatVar("CAPPI5")
+	dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
 	ds.Close()
 
 	if ds.Error() != nil {
@@ -200,55 +243,8 @@ func Convert(dirname string) (io.Reader, error) {
 	}
 
 	reader, result := io.Pipe()
-	maxLon := dims.Lat[len(dims.Lat)-1]
-	maxLat := dims.Lon[len(dims.Lon)-1]
 
-	go func() {
-
-		instant := dims.Instants[0].Format("2006-01-02_15:04")
-
-		fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
-		fmt.Fprintf(result, "#-----------------#\n")
-		fmt.Fprintf(result, "\n")
-		//fmt.Fprintf(result, "lat (%v-%v) lon(%v-%v)\n", lat[0], lat[len(lat)-1], lon[0], lon[len(lon)-1])
-		fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
-			maxLat,
-			maxLon,
-			instant,
-			len(dims.Lat)*len(dims.Lon),
-		)
-		fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
-		fmt.Fprintf(result, "\n")
-
-		//for y := len(dims.Lat) - 1; y >= 0; y-- {
-		//lat := dims.Lat[y]
-		for x, lon := range dims.Lon {
-
-			for y := len(dims.Lat) - 1; y >= 0; y-- {
-				lat := dims.Lat[y]
-				//for y, lat := range dims.Lat {
-				f2 := cappi2[x+y*len(dims.Lon)]
-				f3 := cappi3[x+y*len(dims.Lon)]
-				f5 := cappi5[x+y*len(dims.Lon)]
-				_ = f2
-				_ = f3
-				_ = f5
-				//if f2 >= 0 || f3 >= 0 || f5 >= 0 {
-				fmt.Fprintf(
-					result,
-					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
-					instant,
-					lat,
-					lon)
-
-				writeRadarData(result, f2, 2000.0)
-				writeRadarData(result, f3, 3000.0)
-				writeRadarData(result, f5, 5000.0)
-				//}
-			}
-		}
-		result.Close()
-	}()
+	go writeConvertedDataTo(result, &dims)
 
 	return reader, nil
 }
