@@ -23,5 +23,8 @@ func Test(t *testing.T) {
 	assertReadLine(t, "#-----------------#\n", buf)
 	assertReadLine(t, "\n", buf)
 	assertReadLine(t, "RADAR               17.920   47.570    100.0  2020-07-20_00:00:00   1520289    3\n", buf)
-
+	assertReadLine(t, "#-------------------------------------------------------------------------------#\n", buf)
+	assertReadLine(t, "\n", buf)
+	assertReadLine(t, "FM-128 RADAR   2020-07-20_00:00:00        47.570         5.600     100.0       3\n", buf)
+	assertReadLine(t, "         2000.0 -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", buf)
 }

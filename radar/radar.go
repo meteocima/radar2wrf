@@ -8,139 +8,205 @@ import (
 	"github.com/fhs/go-netcdf/netcdf"
 )
 
-func readDims(dirname string) ([]float32, []float32, []time.Time, error) {
-	filename := fmt.Sprintf("%s/CAPPI2.nc", dirname)
+// CappiDataset ...
+type CappiDataset struct {
+	ds  *netcdf.Dataset
+	err error
+}
 
-	data, err := netcdf.OpenFile(filename, netcdf.NOWRITE)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer data.Close()
+// Error ...
+func (data *CappiDataset) Error() error {
+	return data.err
+}
 
-	colsDim, err := data.Dim("cols")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	cols, err := colsDim.Len()
-	if err != nil {
-		return nil, nil, nil, err
+// GetDimensionLen ...
+func (data *CappiDataset) GetDimensionLen(name string) uint64 {
+	if data.err != nil {
+		return 0
 	}
 
-	rowsDim, err := data.Dim("rows")
-	if err != nil {
-		return nil, nil, nil, err
+	dim, err := data.ds.Dim(name)
+	if data.err != nil {
+		data.err = err
+		return 0
 	}
 
-	rows, err := rowsDim.Len()
-	if err != nil {
-		return nil, nil, nil, err
+	dimlen, err := dim.Len()
+	if data.err != nil {
+		data.err = err
+		return 0
 	}
 
-	latvar, err := data.Var("latitude")
-	if err != nil {
-		return nil, nil, nil, err
+	return dimlen
+}
+
+// Close ...
+func (data *CappiDataset) Close() {
+	if data.err != nil {
+		return
+	}
+	if data.ds == nil {
+		panic("File closed")
 	}
 
-	latval := make([]float32, rows*cols)
-	err = latvar.ReadFloat32s(latval)
+	data.err = data.ds.Close()
+	data.ds = nil
+}
+
+// ReadFloatVar ...
+func (data *CappiDataset) ReadFloatVar(name string) []float32 {
+	if data.err != nil {
+		return nil
+	}
+	res, err := data.ds.Var(name)
 	if err != nil {
-		return nil, nil, nil, err
+		data.err = err
+		return nil
 	}
 
-	lonvar, err := data.Var("longitude")
+	varlen, err := res.Len()
 	if err != nil {
-		return nil, nil, nil, err
+		data.err = err
+		return nil
 	}
 
-	lonval := make([]float32, rows*cols)
-	err = lonvar.ReadFloat32s(lonval)
+	varval := make([]float32, varlen)
+
+	err = res.ReadFloat32s(varval)
 	if err != nil {
-		return nil, nil, nil, err
+		data.err = err
+		return nil
+	}
+
+	return varval
+}
+
+// ReadTimeVar ...
+func (data *CappiDataset) ReadTimeVar(name string) []time.Time {
+	if data.err != nil {
+		return nil
+	}
+	varDs, err := data.ds.Var(name)
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	varlen, err := varDs.Len()
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	varval := make([]int32, varlen)
+
+	err = varDs.ReadInt32s(varval)
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	res := make([]time.Time, varlen)
+	for i, inst := range varval {
+		res[i] = time.Unix(int64(inst), 0).UTC()
+	}
+	return res
+}
+
+// Open ...
+func (data *CappiDataset) Open(filename string) {
+	if data.err != nil {
+		return
+	}
+	if data.ds != nil {
+		panic("Already open")
+	}
+
+	ds, err := netcdf.OpenFile(filename, netcdf.NOWRITE)
+	data.ds, data.err = &ds, err
+}
+
+// FlattenLanLot converts the original format of lat & lon in radar file
+// in two `lat` and `lon' slices.
+// In original netcdf radar file, lat & lon are specified for each point in the grid.
+func (dims *Dimensions) FlattenLanLot(data *CappiDataset) {
+	cols := data.GetDimensionLen("cols")
+	rows := data.GetDimensionLen("rows")
+	if data.Error() != nil {
+		return
 	}
 
 	lats := make([]float32, rows)
 
 	for i := uint64(0); i < rows; i++ {
-		lats[i] = latval[i*cols]
+		lats[i] = dims.Lat[i*cols]
 	}
 
-	lons := lonval[:rows]
-	return lats, lons, []time.Time{
-		time.Date(2020, 7, 20, 0, 0, 0, 0, time.UTC),
-	}, nil
+	dims.Lat = lats
+	dims.Lon = dims.Lon[:rows]
 }
 
-func readVarFile(dirname, varname string) ([]float32, error) {
-	filename := fmt.Sprintf("%s/%s.nc", dirname, varname)
+// Dimensions ...
+type Dimensions struct {
+	Lat      []float32
+	Lon      []float32
+	Instants []time.Time
+}
 
-	data, err := netcdf.OpenFile(filename, netcdf.NOWRITE)
-	if err != nil {
-		return nil, err
-	}
-	defer data.Close()
+func filenameForVar(dirname, varname string) string {
+	return fmt.Sprintf("%s/%s.nc", dirname, varname)
+}
 
-	cappivar, err := data.Var(varname)
-	if err != nil {
-		return nil, err
-	}
-
-	rowsDim, err := data.Dim("rows")
-	if err != nil {
-		return nil, err
+func writeRadarData(f io.Writer, val float32, height float64) {
+	if val < 0 {
+		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
+		return
 	}
 
-	colsDim, err := data.Dim("cols")
-	if err != nil {
-		return nil, err
-	}
+	fmt.Fprintf(
+		f,
+		"       %8.1f -888888.000 -88 -888888.000   %11.3f   0       5.000\n",
+		height,
+		val,
+	)
 
-	rows, err := rowsDim.Len()
-	if err != nil {
-		return nil, err
-	}
-
-	cols, err := colsDim.Len()
-	if err != nil {
-		return nil, err
-	}
-
-	values := make([]float32, rows*cols)
-	err = cappivar.ReadFloat32s(values)
-	if err != nil {
-		return nil, err
-	}
-
-	return values, nil
 }
 
 // Convert ...
 func Convert(dirname string) (io.Reader, error) {
-	cappi2, err := readVarFile(dirname, "CAPPI2")
-	if err != nil {
-		return nil, err
-	}
+	ds := &CappiDataset{}
+	ds.Open(filenameForVar(dirname, "CAPPI2"))
 
-	cappi3, err := readVarFile(dirname, "CAPPI3")
-	if err != nil {
-		return nil, err
-	}
+	dims := Dimensions{}
 
-	cappi5, err := readVarFile(dirname, "CAPPI5")
-	if err != nil {
-		return nil, err
-	}
+	dims.Lat = ds.ReadFloatVar("latitude")
+	dims.Lon = ds.ReadFloatVar("longitude")
+	dims.Instants = ds.ReadTimeVar("time")
+	dims.FlattenLanLot(ds)
 
-	lat, lon, instants, err := readDims(dirname)
-	if err != nil {
-		return nil, err
-	}
+	cappi2 := ds.ReadFloatVar("CAPPI2")
+	ds.Close()
 
-	_, _, _ = cappi2, cappi3, cappi5
+	ds.Open(filenameForVar(dirname, "CAPPI3"))
+	cappi3 := ds.ReadFloatVar("CAPPI3")
+	ds.Close()
+
+	ds.Open(filenameForVar(dirname, "CAPPI5"))
+	cappi5 := ds.ReadFloatVar("CAPPI5")
+	ds.Close()
+
+	if ds.Error() != nil {
+		return nil, ds.Error()
+	}
 
 	reader, result := io.Pipe()
-	maxLon, maxLat := lat[len(lat)-1], lon[len(lon)-1]
+	maxLon := dims.Lat[len(dims.Lat)-1]
+	maxLat := dims.Lon[len(dims.Lon)-1]
+
 	go func() {
+
+		instant := dims.Instants[0].Format("2006-01-02_15:04")
+
 		fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
 		fmt.Fprintf(result, "#-----------------#\n")
 		fmt.Fprintf(result, "\n")
@@ -148,9 +214,39 @@ func Convert(dirname string) (io.Reader, error) {
 		fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
 			maxLat,
 			maxLon,
-			instants[0].Format("2006-01-02_15:04"),
-			len(lat)*len(lon),
+			instant,
+			len(dims.Lat)*len(dims.Lon),
 		)
+		fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
+		fmt.Fprintf(result, "\n")
+
+		//for y := len(dims.Lat) - 1; y >= 0; y-- {
+		//lat := dims.Lat[y]
+		for x, lon := range dims.Lon {
+
+			for y := len(dims.Lat) - 1; y >= 0; y-- {
+				lat := dims.Lat[y]
+				//for y, lat := range dims.Lat {
+				f2 := cappi2[x+y*len(dims.Lon)]
+				f3 := cappi3[x+y*len(dims.Lon)]
+				f5 := cappi5[x+y*len(dims.Lon)]
+				_ = f2
+				_ = f3
+				_ = f5
+				//if f2 >= 0 || f3 >= 0 || f5 >= 0 {
+				fmt.Fprintf(
+					result,
+					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
+					instant,
+					lat,
+					lon)
+
+				writeRadarData(result, f2, 2000.0)
+				writeRadarData(result, f3, 3000.0)
+				writeRadarData(result, f5, 5000.0)
+				//}
+			}
+		}
 		result.Close()
 	}()
 
