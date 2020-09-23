@@ -198,17 +198,18 @@ func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
 			f2 := dims.Cappi2[x+y*len(dims.Lon)]
 			f3 := dims.Cappi3[x+y*len(dims.Lon)]
 			f5 := dims.Cappi5[x+y*len(dims.Lon)]
+			if f2 > 0 || f3 > 0 || f5 > 0 {
+				fmt.Fprintf(
+					result,
+					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
+					instant,
+					lat,
+					lon)
 
-			fmt.Fprintf(
-				result,
-				"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
-				instant,
-				lat,
-				lon)
-
-			writeRadarData(result, f2, 2000.0)
-			writeRadarData(result, f3, 3000.0)
-			writeRadarData(result, f5, 5000.0)
+				writeRadarData(result, f2, 2000.0)
+				writeRadarData(result, f3, 3000.0)
+				writeRadarData(result, f5, 5000.0)
+			}
 		}
 	}
 

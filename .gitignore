@@ -30,3 +30,4 @@ data
 oldradar
 pwdenc
 *.nc
+ob.radar.*
