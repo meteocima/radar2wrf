@@ -154,8 +154,8 @@ type Dimensions struct {
 	Cappi2, Cappi3, Cappi5 []float32
 }
 
-func filenameForVar(dirname, varname string) string {
-	return fmt.Sprintf("%s/%s.nc", dirname, varname)
+func filenameForVar(dirname, varname, dt string) string {
+	return fmt.Sprintf("%s/%s-%s.nc", dirname, dt, varname)
 }
 
 func writeRadarData(f io.Writer, val float32, height float64) {
@@ -216,9 +216,9 @@ func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
 }
 
 // Convert ...
-func Convert(dirname string) (io.Reader, error) {
+func Convert(dirname, dt string) (io.Reader, error) {
 	ds := &CappiDataset{}
-	ds.Open(filenameForVar(dirname, "CAPPI2"))
+	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
 	dims := Dimensions{}
 
@@ -230,11 +230,11 @@ func Convert(dirname string) (io.Reader, error) {
 	dims.Cappi2 = ds.ReadFloatVar("CAPPI2")
 	ds.Close()
 
-	ds.Open(filenameForVar(dirname, "CAPPI3"))
+	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
 	dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
 	ds.Close()
 
-	ds.Open(filenameForVar(dirname, "CAPPI5"))
+	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
 	dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
 	ds.Close()
 
