@@ -127,30 +127,12 @@ func (data *CappiDataset) Open(filename string) {
 	data.ds, data.err = &ds, err
 }
 
-// FlattenLanLot converts the original format of lat & lon in radar file
-// in two `lat` and `lon' slices.
-// In original netcdf radar file, lat & lon are specified for each point in the grid.
-func (dims *Dimensions) FlattenLanLot(data *CappiDataset) {
-	cols := data.GetDimensionLen("cols")
-	rows := data.GetDimensionLen("rows")
-	if data.Error() != nil {
-		return
-	}
-
-	lats := make([]float32, rows)
-
-	for i := uint64(0); i < rows; i++ {
-		lats[i] = dims.Lat[i*cols]
-	}
-
-	dims.Lat = lats
-	dims.Lon = dims.Lon[:rows]
-}
-
 // Dimensions ...
 type Dimensions struct {
 	Lat                    []float32
 	Lon                    []float32
+	Width                  uint64
+	Height                 uint64
 	Instants               []time.Time
 	Cappi2, Cappi3, Cappi5 []float32
 }
@@ -175,11 +157,22 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 }
 
 func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
-	maxLon := dims.Lat[len(dims.Lat)-1]
-	maxLat := dims.Lon[len(dims.Lon)-1]
+	maxLon := float32(-1)
+
+	for _, l := range dims.Lon {
+		if l > maxLon {
+			maxLon = l
+		}
+	}
+	maxLat := float32(-1)
+	for _, l := range dims.Lat {
+		if l > maxLat {
+			maxLat = l
+		}
+	}
 
 	instant := dims.Instants[0].Format("2006-01-02_15:04")
-	result := bufio.NewWriter(resultW)
+	result := bufio.NewWriterSize(resultW, 1000000)
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
 	fmt.Fprintf(result, "#-----------------#\n")
 	fmt.Fprintf(result, "\n")
@@ -192,13 +185,14 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
 	fmt.Fprintf(result, "\n")
 
-	for x, lon := range dims.Lon {
-		for y := len(dims.Lat) - 1; y >= 0; y-- {
-			lat := dims.Lat[y]
-			//for y, lat := range dims.Lat {
-			f2 := dims.Cappi2[x+y*len(dims.Lon)]
-			f3 := dims.Cappi3[x+y*len(dims.Lon)]
-			f5 := dims.Cappi5[x+y*len(dims.Lon)]
+	for x := uint64(0); x < dims.Width; x++ {
+		for y := uint64(0); y < dims.Height; y++ {
+			lat := dims.Lat[x+y*dims.Width]
+			lon := dims.Lon[x+y*dims.Width]
+
+			f2 := dims.Cappi2[x+y*dims.Width]
+			f3 := dims.Cappi3[x+y*dims.Width]
+			f5 := dims.Cappi5[x+y*dims.Width]
 			if f2 >= 0 || f3 >= 0 || f5 >= 0 {
 				fmt.Fprintf(
 					result,
@@ -224,10 +218,11 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	dims := Dimensions{}
 
+	dims.Width = ds.GetDimensionLen("cols")
+	dims.Height = ds.GetDimensionLen("rows")
 	dims.Lat = ds.ReadFloatVar("latitude")
 	dims.Lon = ds.ReadFloatVar("longitude")
 	dims.Instants = ds.ReadTimeVar("time")
-	dims.FlattenLanLot(ds)
 
 	dims.Cappi2 = ds.ReadFloatVar("CAPPI2")
 	ds.Close()
