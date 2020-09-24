@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	"log"
 	"os"
@@ -20,8 +21,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	outfileBuff := bufio.NewWriter(outfile)
+
 	defer outfile.Close()
-	_, err = io.Copy(outfile, reader)
+	_, err = io.Copy(outfileBuff, reader)
 	if err != nil {
 		log.Fatal(err)
 	}

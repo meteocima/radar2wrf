@@ -27,7 +27,6 @@
 # vendor/
 
 data
-oldradar
-pwdenc
 *.nc
 ob.radar.*
+r2w

@@ -11,7 +11,7 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {},
-            "args": ["/home/parroit/Desktop/cimarepos/dewetra-radar-download","2018071401"]
+            "args": ["/home/parroit/Desktop/cimarepos/radar2wrf/data","2019112400"]
         }
     ]
 }

@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"time"
@@ -173,12 +174,12 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 
 }
 
-func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
+func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 	maxLon := dims.Lat[len(dims.Lat)-1]
 	maxLat := dims.Lon[len(dims.Lon)-1]
 
 	instant := dims.Instants[0].Format("2006-01-02_15:04")
-
+	result := bufio.NewWriter(resultW)
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
 	fmt.Fprintf(result, "#-----------------#\n")
 	fmt.Fprintf(result, "\n")
@@ -198,7 +199,7 @@ func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
 			f2 := dims.Cappi2[x+y*len(dims.Lon)]
 			f3 := dims.Cappi3[x+y*len(dims.Lon)]
 			f5 := dims.Cappi5[x+y*len(dims.Lon)]
-			if f2 > 0 || f3 > 0 || f5 > 0 {
+			if f2 >= 0 || f3 >= 0 || f5 >= 0 {
 				fmt.Fprintf(
 					result,
 					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
@@ -212,8 +213,8 @@ func writeConvertedDataTo(result io.WriteCloser, dims *Dimensions) {
 			}
 		}
 	}
-
-	result.Close()
+	result.Flush()
+	resultW.Close()
 }
 
 // Convert ...
