@@ -131,8 +131,8 @@ func (data *CappiDataset) Open(filename string) {
 type Dimensions struct {
 	Lat                    []float32
 	Lon                    []float32
-	Width                  uint64
-	Height                 uint64
+	Width                  int64
+	Height                 int64
 	Instants               []time.Time
 	Cappi2, Cappi3, Cappi5 []float32
 }
@@ -185,8 +185,9 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
 	fmt.Fprintf(result, "\n")
 
-	for x := uint64(0); x < dims.Width; x++ {
-		for y := uint64(0); y < dims.Height; y++ {
+	for x := int64(0); x < dims.Width; x++ {
+		for y := int64(dims.Height) - 1; y >= int64(0); y-- {
+
 			lat := dims.Lat[x+y*dims.Width]
 			lon := dims.Lon[x+y*dims.Width]
 
@@ -218,8 +219,8 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	dims := Dimensions{}
 
-	dims.Width = ds.GetDimensionLen("cols")
-	dims.Height = ds.GetDimensionLen("rows")
+	dims.Width = int64(ds.GetDimensionLen("cols"))
+	dims.Height = int64(ds.GetDimensionLen("rows"))
 	dims.Lat = ds.ReadFloatVar("latitude")
 	dims.Lon = ds.ReadFloatVar("longitude")
 	dims.Instants = ds.ReadTimeVar("time")
