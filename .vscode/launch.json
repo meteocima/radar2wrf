@@ -9,9 +9,9 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
+            "program": "/home/parroit/Desktop/cimarepos/radar2wrf/cli/cli.go",
             "env": {},
-            "args": ["/home/parroit/Desktop/cimarepos/radar2wrf/data","2019112400"]
+            "args": ["/home/parroit/tiffiti", "2018081400"]
         }
     ]
 }

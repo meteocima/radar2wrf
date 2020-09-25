@@ -173,14 +173,25 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 
 	instant := dims.Instants[0].Format("2006-01-02_15:04")
 	result := bufio.NewWriterSize(resultW, 1000000)
+
+	totObs := 0
+	for i := int64(0); i < dims.Width*dims.Height; i++ {
+		f2 := dims.Cappi2[i]
+		f3 := dims.Cappi3[i]
+		f5 := dims.Cappi5[i]
+		if f2 >= 0 || f3 >= 0 || f5 >= 0 {
+			totObs++
+		}
+	}
+
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
 	fmt.Fprintf(result, "#-----------------#\n")
 	fmt.Fprintf(result, "\n")
 	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
-		maxLat,
 		maxLon,
+		maxLat,
 		instant,
-		len(dims.Lat)*len(dims.Lon),
+		totObs,
 	)
 	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
 	fmt.Fprintf(result, "\n")
