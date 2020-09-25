@@ -171,7 +171,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtReq time.T
 		}
 	}
 
-	instant := dims.Instants[0].Format("2006-01-02_15:04")
+	//instant := dims.Instants[0].Format("2006-01-02_15:04")
 	result := bufio.NewWriterSize(resultW, 1000000)
 
 	totObs := 0
@@ -209,7 +209,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtReq time.T
 				fmt.Fprintf(
 					result,
 					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
-					instant,
+					dtReq,
 					lat,
 					lon)
 
