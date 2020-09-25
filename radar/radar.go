@@ -156,7 +156,7 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 
 }
 
-func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
+func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtReq time.Time) {
 	maxLon := float32(-1)
 
 	for _, l := range dims.Lon {
@@ -190,7 +190,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
 		maxLon,
 		maxLat,
-		instant,
+		dtReq,
 		totObs,
 	)
 	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
@@ -225,6 +225,10 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 
 // Convert ...
 func Convert(dirname, dt string) (io.Reader, error) {
+	dtReq, err := time.Parse("2006010215", dt)
+	if err != nil {
+		return nil, err
+	}
 	ds := &CappiDataset{}
 	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
@@ -253,7 +257,7 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	reader, result := io.Pipe()
 
-	go writeConvertedDataTo(result, &dims)
+	go writeConvertedDataTo(result, &dims, dtReq)
 
 	return reader, nil
 }
