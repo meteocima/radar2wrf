@@ -99,9 +99,9 @@ func (data *CappiDataset) ReadTimeVar(name string) []time.Time {
 		return nil
 	}
 
-	varval := make([]int32, varlen)
+	varval := make([]float64, varlen)
 
-	err = varDs.ReadInt32s(varval)
+	err = varDs.ReadFloat64s(varval)
 	if err != nil {
 		data.err = err
 		return nil
