@@ -82,6 +82,34 @@ func (data *CappiDataset) ReadFloatVar(name string) []float32 {
 	return varval
 }
 
+// ReadDoubleVar ...
+func (data *CappiDataset) ReadDoubleVar(name string) []float64 {
+	if data.err != nil {
+		return nil
+	}
+	res, err := data.ds.Var(name)
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	varlen, err := res.Len()
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	varval := make([]float64, varlen)
+
+	err = res.ReadFloat64s(varval)
+	if err != nil {
+		data.err = err
+		return nil
+	}
+
+	return varval
+}
+
 // ReadTimeVar ...
 func (data *CappiDataset) ReadTimeVar(name string) []time.Time {
 	if data.err != nil {
@@ -129,8 +157,8 @@ func (data *CappiDataset) Open(filename string) {
 
 // Dimensions ...
 type Dimensions struct {
-	Lat                    []float32
-	Lon                    []float32
+	Lat                    []float64
+	Lon                    []float64
 	Width                  int64
 	Height                 int64
 	Instants               []time.Time
@@ -157,14 +185,14 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 }
 
 func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
-	maxLon := float32(-1)
+	maxLon := float64(-1)
 
 	for _, l := range dims.Lon {
 		if l > maxLon {
 			maxLon = l
 		}
 	}
-	maxLat := float32(-1)
+	maxLat := float64(-1)
 	for _, l := range dims.Lat {
 		if l > maxLat {
 			maxLat = l
@@ -199,8 +227,8 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 	for x := int64(0); x < dims.Width; x++ {
 		for y := int64(dims.Height) - 1; y >= int64(0); y-- {
 
-			lat := dims.Lat[x+y*dims.Width]
-			lon := dims.Lon[x+y*dims.Width]
+			lat := dims.Lat[y]
+			lon := dims.Lon[x]
 
 			f2 := dims.Cappi2[x+y*dims.Width]
 			f3 := dims.Cappi3[x+y*dims.Width]
@@ -230,10 +258,10 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	dims := Dimensions{}
 
-	dims.Width = int64(ds.GetDimensionLen("cols"))
-	dims.Height = int64(ds.GetDimensionLen("rows"))
-	dims.Lat = ds.ReadFloatVar("latitude")
-	dims.Lon = ds.ReadFloatVar("longitude")
+	dims.Width = int64(ds.GetDimensionLen("lon"))
+	dims.Height = int64(ds.GetDimensionLen("lat"))
+	dims.Lat = ds.ReadDoubleVar("lat")
+	dims.Lon = ds.ReadDoubleVar("lon")
 	dims.Instants = ds.ReadTimeVar("time")
 
 	dims.Cappi2 = ds.ReadFloatVar("CAPPI2")

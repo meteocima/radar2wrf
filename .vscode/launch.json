@@ -11,7 +11,7 @@
             "mode": "auto",
             "program": "/home/parroit/Desktop/cimarepos/radar2wrf/cli/cli.go",
             "env": {},
-            "args": ["/home/parroit/Desktop/cimarepos/radar2wrf/data", "2020071506"]
+            "args": ["/home/parroit/Desktop/cimarepos/radar2wrf/data", "2018070200"]
         }
     ]
 }
