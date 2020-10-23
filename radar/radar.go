@@ -184,25 +184,62 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 
 }
 
-func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
+func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested time.Time) {
+	defer resultW.Close()
+	result := bufio.NewWriterSize(resultW, 1000000)
+	defer result.Flush()
+
 	maxLon := float64(-1)
+	maxLat := float64(-1)
+	instant := dtRequested.Format("2006-01-02_15:04")
+	totObs := 0
+
+	if dims.Cappi2 != nil ||
+		dims.Cappi3 != nil ||
+		dims.Cappi5 != nil {
+		for _, l := range dims.Lon {
+			if l > maxLon {
+				maxLon = l
+			}
+		}
+		for _, l := range dims.Lat {
+			if l > maxLat {
+				maxLat = l
+			}
+		}
+	}
+
+	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
+	fmt.Fprintf(result, "#-----------------#\n")
+	fmt.Fprintf(result, "\n")
+	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
+		maxLon,
+		maxLat,
+		instant,
+		totObs,
+	)
+	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
+	fmt.Fprintf(result, "\n")
+
+	if dims.Cappi2 == nil &&
+		dims.Cappi3 == nil &&
+		dims.Cappi5 == nil {
+		return
+	}
 
 	for _, l := range dims.Lon {
 		if l > maxLon {
 			maxLon = l
 		}
 	}
-	maxLat := float64(-1)
 	for _, l := range dims.Lat {
 		if l > maxLat {
 			maxLat = l
 		}
 	}
 
-	instant := dims.Instants[0].Format("2006-01-02_15:04")
-	result := bufio.NewWriterSize(resultW, 1000000)
+	instant = dims.Instants[0].Format("2006-01-02_15:04")
 
-	totObs := 0
 	for i := int64(0); i < dims.Width*dims.Height; i++ {
 		f2 := float32(-1)
 		f3 := float32(-1)
@@ -222,18 +259,6 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 			totObs++
 		}
 	}
-
-	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
-	fmt.Fprintf(result, "#-----------------#\n")
-	fmt.Fprintf(result, "\n")
-	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
-		maxLon,
-		maxLat,
-		instant,
-		totObs,
-	)
-	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
-	fmt.Fprintf(result, "\n")
 
 	for x := int64(0); x < dims.Width; x++ {
 		for y := int64(dims.Height) - 1; y >= int64(0); y-- {
@@ -271,8 +296,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 			}
 		}
 	}
-	result.Flush()
-	resultW.Close()
+
 }
 
 // Convert ...
@@ -337,7 +361,10 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	reader, result := io.Pipe()
 
-	go writeConvertedDataTo(result, &dims)
+	reqDt, err := time.Parse("2006010215", dt)
+	if err == nil {
+		go writeConvertedDataTo(result, &dims, reqDt)
+	}
 
-	return reader, nil
+	return reader, err
 }
