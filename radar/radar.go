@@ -204,9 +204,20 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 
 	totObs := 0
 	for i := int64(0); i < dims.Width*dims.Height; i++ {
-		f2 := dims.Cappi2[i]
-		f3 := dims.Cappi3[i]
-		f5 := dims.Cappi5[i]
+		f2 := float32(-1)
+		f3 := float32(-1)
+		f5 := float32(-1)
+
+		if dims.Cappi2 != nil {
+			f2 = dims.Cappi2[i]
+		}
+
+		if dims.Cappi3 != nil {
+			f3 = dims.Cappi3[i]
+		}
+		if dims.Cappi5 != nil {
+			f5 = dims.Cappi5[i]
+		}
 		if f2 >= 0 || f3 >= 0 || f5 >= 0 {
 			totObs++
 		}
@@ -230,9 +241,22 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 			lat := dims.Lat[y]
 			lon := dims.Lon[x]
 
-			f2 := dims.Cappi2[x+y*dims.Width]
-			f3 := dims.Cappi3[x+y*dims.Width]
-			f5 := dims.Cappi5[x+y*dims.Width]
+			f2 := float32(-1)
+			f3 := float32(-1)
+			f5 := float32(-1)
+
+			i := x + y*dims.Width
+
+			if dims.Cappi2 != nil {
+				f2 = dims.Cappi2[i]
+			}
+			if dims.Cappi3 != nil {
+				f3 = dims.Cappi3[i]
+			}
+			if dims.Cappi5 != nil {
+				f5 = dims.Cappi5[i]
+			}
+
 			if f2 >= 0 || f3 >= 0 || f5 >= 0 {
 				fmt.Fprintf(
 					result,
@@ -253,29 +277,61 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions) {
 
 // Convert ...
 func Convert(dirname, dt string) (io.Reader, error) {
+	dims := Dimensions{}
 	ds := &CappiDataset{}
+
+	setDims := func() {
+		if dims.Width > 0 {
+			return
+		}
+		if _, err := ds.ds.Dim("lon"); err != nil {
+			return
+		}
+		dims.Width = int64(ds.GetDimensionLen("lon"))
+		dims.Height = int64(ds.GetDimensionLen("lat"))
+		dims.Lat = ds.ReadDoubleVar("lat")
+		dims.Lon = ds.ReadDoubleVar("lon")
+		dims.Instants = ds.ReadTimeVar("time")
+	}
+
 	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
-	dims := Dimensions{}
-
-	dims.Width = int64(ds.GetDimensionLen("lon"))
-	dims.Height = int64(ds.GetDimensionLen("lat"))
-	dims.Lat = ds.ReadDoubleVar("lat")
-	dims.Lon = ds.ReadDoubleVar("lon")
-	dims.Instants = ds.ReadTimeVar("time")
-
-	dims.Cappi2 = ds.ReadFloatVar("CAPPI2")
-	ds.Close()
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+	} else {
+		dims.Cappi2 = ds.ReadFloatVar("CAPPI2")
+		setDims()
+		ds.Close()
+	}
 
 	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
-	dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
-	ds.Close()
+
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+
+	} else {
+		dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
+		setDims()
+		ds.Close()
+	}
 
 	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
-	dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
-	ds.Close()
 
-	if ds.Error() != nil {
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+	} else {
+		dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
+		setDims()
+		ds.Close()
+	}
+
+	if ds.err != nil {
 		return nil, ds.Error()
 	}
 
