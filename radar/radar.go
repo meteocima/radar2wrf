@@ -207,6 +207,9 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 				maxLat = l
 			}
 		}
+	} else {
+		maxLon = float64(1)
+		maxLat = float64(1)
 	}
 
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
