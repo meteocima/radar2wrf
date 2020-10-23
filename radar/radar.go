@@ -311,7 +311,8 @@ func Convert(dirname, dt string) (io.Reader, error) {
 		if dims.Width > 0 {
 			return
 		}
-		if _, err := ds.ds.Dim("lon"); err != nil {
+		if ds.ReadDoubleVar("lat"); ds.err != nil {
+			ds.err = nil
 			return
 		}
 		dims.Width = int64(ds.GetDimensionLen("lon"))
