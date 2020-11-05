@@ -127,9 +127,9 @@ func (data *CappiDataset) ReadTimeVar(name string) []time.Time {
 		return nil
 	}
 
-	varval := make([]float64, varlen)
+	varval := make([]int32, varlen)
 
-	err = varDs.ReadFloat64s(varval)
+	err = varDs.ReadInt32s(varval)
 	if err != nil {
 		data.err = err
 		return nil
@@ -157,8 +157,8 @@ func (data *CappiDataset) Open(filename string) {
 
 // Dimensions ...
 type Dimensions struct {
-	Lat                    []float64
-	Lon                    []float64
+	Lat                    []float32
+	Lon                    []float32
 	Width                  int64
 	Height                 int64
 	Instants               []time.Time
@@ -189,8 +189,8 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	result := bufio.NewWriterSize(resultW, 1000000)
 	defer result.Flush()
 
-	maxLon := float64(-1)
-	maxLat := float64(-1)
+	maxLon := float32(-1)
+	maxLat := float32(-1)
 	instant := dtRequested.Format("2006-01-02_15:04")
 	totObs := 0
 
@@ -208,8 +208,28 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			}
 		}
 	} else {
-		maxLon = float64(1)
-		maxLat = float64(1)
+		maxLon = float32(1)
+		maxLat = float32(1)
+	}
+
+	for i := int64(0); i < dims.Width*dims.Height; i++ {
+		f2 := float32(-1)
+		f3 := float32(-1)
+		f5 := float32(-1)
+
+		if dims.Cappi2 != nil {
+			f2 = dims.Cappi2[i]
+		}
+
+		if dims.Cappi3 != nil {
+			f3 = dims.Cappi3[i]
+		}
+		if dims.Cappi5 != nil {
+			f5 = dims.Cappi5[i]
+		}
+		if f2 >= 0 || f3 >= 0 || f5 >= 0 {
+			totObs++
+		}
 	}
 
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
@@ -242,26 +262,6 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	}
 
 	instant = dims.Instants[0].Format("2006-01-02_15:04")
-
-	for i := int64(0); i < dims.Width*dims.Height; i++ {
-		f2 := float32(-1)
-		f3 := float32(-1)
-		f5 := float32(-1)
-
-		if dims.Cappi2 != nil {
-			f2 = dims.Cappi2[i]
-		}
-
-		if dims.Cappi3 != nil {
-			f3 = dims.Cappi3[i]
-		}
-		if dims.Cappi5 != nil {
-			f5 = dims.Cappi5[i]
-		}
-		if f2 >= 0 || f3 >= 0 || f5 >= 0 {
-			totObs++
-		}
-	}
 
 	for x := int64(0); x < dims.Width; x++ {
 		for y := int64(dims.Height) - 1; y >= int64(0); y-- {
@@ -300,6 +300,8 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 		}
 	}
 
+	fmt.Println()
+
 }
 
 // Convert ...
@@ -311,14 +313,14 @@ func Convert(dirname, dt string) (io.Reader, error) {
 		if dims.Width > 0 {
 			return
 		}
-		if ds.ReadDoubleVar("lat"); ds.err != nil {
+		if ds.ReadFloatVar("latitude"); ds.err != nil {
 			ds.err = nil
 			return
 		}
-		dims.Width = int64(ds.GetDimensionLen("lon"))
-		dims.Height = int64(ds.GetDimensionLen("lat"))
-		dims.Lat = ds.ReadDoubleVar("lat")
-		dims.Lon = ds.ReadDoubleVar("lon")
+		dims.Width = int64(ds.GetDimensionLen("longitude"))
+		dims.Height = int64(ds.GetDimensionLen("latitude"))
+		dims.Lat = ds.ReadFloatVar("latitude")
+		dims.Lon = ds.ReadFloatVar("longitude")
 		dims.Instants = ds.ReadTimeVar("time")
 	}
 
