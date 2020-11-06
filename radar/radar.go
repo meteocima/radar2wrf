@@ -177,7 +177,7 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 		//                      000000000111111111122222222223333333333444444444455555555556666666666\
 		//                      123456789012345678901234567890123456789012345678901234567890123456789\
 		//		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
-		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000  \n", height)
+		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
 		return
 	}
 
@@ -186,7 +186,7 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 		// write(301,'(3x,f12.1,2(f12.3,i4,f12.3,2x))')
 		// hgt(i,m), rv_data(i,m), rv_qc(i,m), rv_err(i,m), rf_data(i,m), rf_qc(i,m), rf_err(i,m)
 		//"       %8.1f -888888.000 -88 -888888.000   %11.3f   0       5.000\n",
-		"   %12.1f -888888.000 -88 -888888.000  %12.3f   0       5.000  \n",
+		"   %12.1f -888888.000 -88 -888888.000  %12.3f   0       5.000\n",
 		height,
 		val,
 	)
@@ -264,30 +264,18 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 		return
 	}
 
-	for _, l := range dims.Lon {
-		if l > maxLon {
-			maxLon = l
-		}
-	}
-	for _, l := range dims.Lat {
-		if l > maxLat {
-			maxLat = l
-		}
-	}
-
 	instant = dims.Instants[0].Format("2006-01-02_15:04")
 
 	for x := int64(0); x < dims.Width; x++ {
 		for y := int64(dims.Height) - 1; y >= int64(0); y-- {
+			i := x + y*dims.Width
 
-			lat := dims.Lat[y]
-			lon := dims.Lon[x]
+			lat := dims.Lat[i]
+			lon := dims.Lon[i]
 
 			f2 := float32(-1)
 			f3 := float32(-1)
 			f5 := float32(-1)
-
-			i := x + y*dims.Width
 
 			if dims.Cappi2 != nil {
 				f2 = dims.Cappi2[i]
@@ -306,6 +294,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 					//do i = 1,np ! np: # of total horizontal data points
 					//write(301,'(a12,3x,a19,2x,2(f12.3,2x),f8.1,2x,i6)') 'FM-128 RADAR', &
 					// trim(radar_date), plat(i), plon(i), raltr(irad)*1000, count_nz(i)
+
 					//"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
 					"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       3\n",
 					instant,
@@ -336,8 +325,8 @@ func Convert(dirname, dt string) (io.Reader, error) {
 			ds.err = nil
 			return
 		}
-		dims.Width = int64(ds.GetDimensionLen("longitude"))
-		dims.Height = int64(ds.GetDimensionLen("latitude"))
+		dims.Width = int64(ds.GetDimensionLen("cols"))
+		dims.Height = int64(ds.GetDimensionLen("rows"))
 		dims.Lat = ds.ReadFloatVar("latitude")
 		dims.Lon = ds.ReadFloatVar("longitude")
 		dims.Instants = ds.ReadTimeVar("time")
