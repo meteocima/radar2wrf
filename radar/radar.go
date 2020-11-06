@@ -177,7 +177,7 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 		//                      000000000111111111122222222223333333333444444444455555555556666666666\
 		//                      123456789012345678901234567890123456789012345678901234567890123456789\
 		//		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
-		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
+		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000  \n", height)
 		return
 	}
 
@@ -306,8 +306,8 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 					//do i = 1,np ! np: # of total horizontal data points
 					//write(301,'(a12,3x,a19,2x,2(f12.3,2x),f8.1,2x,i6)') 'FM-128 RADAR', &
 					// trim(radar_date), plat(i), plon(i), raltr(irad)*1000, count_nz(i)
-					//"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       3\n",
-					"FM-128 RADAR   %s:00  %7.3f      %8.3f     100.0       3\n",
+					//"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
+					"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       3\n",
 					instant,
 					lat,
 					lon)
