@@ -170,14 +170,23 @@ func filenameForVar(dirname, varname, dt string) string {
 }
 
 func writeRadarData(f io.Writer, val float32, height float64) {
+
 	if val < 0 {
-		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
+		// write(301,'(3x,f12.1,2(f12.3,i4,f12.3,2x))')
+		// hgt(i,m), rv_data(i,m), rv_qc(i,m), rv_err(i,m), rf_data(i,m), rf_qc(i,m), rf_err(i,m)
+		//                      000000000111111111122222222223333333333444444444455555555556666666666\
+		//                      123456789012345678901234567890123456789012345678901234567890123456789\
+		//		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
+		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
 		return
 	}
 
 	fmt.Fprintf(
 		f,
-		"       %8.1f -888888.000 -88 -888888.000   %11.3f   0       5.000\n",
+		// write(301,'(3x,f12.1,2(f12.3,i4,f12.3,2x))')
+		// hgt(i,m), rv_data(i,m), rv_qc(i,m), rv_err(i,m), rf_data(i,m), rf_qc(i,m), rf_err(i,m)
+		//"       %8.1f -888888.000 -88 -888888.000   %11.3f   0       5.000\n",
+		"   %12.1f -888888.000 -88 -888888.000  %12.3f   0       5.000  \n",
 		height,
 		val,
 	)
@@ -235,12 +244,17 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	fmt.Fprintf(result, "TOTAL NUMBER =  1\n")
 	fmt.Fprintf(result, "#-----------------#\n")
 	fmt.Fprintf(result, "\n")
-	fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
+	//  write(301,'(a5,2x,a12,2(f8.3,2x),f8.1,2x,a19,2i6)') 'RADAR', &
+	//  radar_name, rlonr(irad), rlatr(irad), raltr(irad)*1000., &
+	//  trim(radar_date), np, imdv_nz(irad)
+	//  fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
+	fmt.Fprintf(result, "RADAR              %8.3f  %8.3f     100.0  %s:00%6d     3\n",
 		maxLon,
 		maxLat,
 		instant,
 		totObs,
 	)
+
 	fmt.Fprintf(result, "#-------------------------------------------------------------------------------#\n")
 	fmt.Fprintf(result, "\n")
 
@@ -288,7 +302,12 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			if f2 >= 0 || f3 >= 0 || f5 >= 0 {
 				fmt.Fprintf(
 					result,
-					"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
+					//!----Write data
+					//do i = 1,np ! np: # of total horizontal data points
+					//write(301,'(a12,3x,a19,2x,2(f12.3,2x),f8.1,2x,i6)') 'FM-128 RADAR', &
+					// trim(radar_date), plat(i), plon(i), raltr(irad)*1000, count_nz(i)
+					//"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       3\n",
+					"FM-128 RADAR   %s:00  %7.3f      %8.3f     100.0       3\n",
 					instant,
 					lat,
 					lon)
