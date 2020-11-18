@@ -12,8 +12,8 @@
             "program": "/home/parroit/Desktop/cimarepos/radar2wrf/cli/cli.go",
             "env": {},
             "args": [
-                "/home/parroit/Desktop/cimarepos/dewetra-radar-download/",
-                "2020071506"
+                "/home/parroit/Desktop/cimarepos/radar2wrf",
+                "2018080118"
             ]
         }
     ]
