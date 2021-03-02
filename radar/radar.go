@@ -166,7 +166,7 @@ type Dimensions struct {
 }
 
 func filenameForVar(dirname, varname, dt string) string {
-	return fmt.Sprintf("%s/%s-%s.nc", dirname, dt, varname)
+	return fmt.Sprintf("%s/%s.nc", dirname, varname)
 }
 
 func writeRadarData(f io.Writer, val float32, height float64) {
