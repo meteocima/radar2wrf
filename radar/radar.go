@@ -253,8 +253,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	//  write(301,'(a5,2x,a12,2(f8.3,2x),f8.1,2x,a19,2i6)') 'RADAR', &
 	//  radar_name, rlonr(irad), rlatr(irad), raltr(irad)*1000., &
 	//  trim(radar_date), np, imdv_nz(irad)
-	//  fmt.Fprintf(result, "RADAR             %8.3f  %7.3f    100.0  %s:00 %9d    3\n",
-	fmt.Fprintf(result, "RADAR              %8.3f  %8.3f     100.0  %s:00%6d     3\n",
+	fmt.Fprintf(result, "RADAR              %8.3f  %8.3f     100.0  %s:00%6d     4\n",
 		maxLon,
 		maxLat,
 		instant,
@@ -307,7 +306,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 					// trim(radar_date), plat(i), plon(i), raltr(irad)*1000, count_nz(i)
 
 					//"FM-128 RADAR   %s:00       %7.3f      %8.3f     100.0       3\n",
-					"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       3\n",
+					"FM-128 RADAR   %s:00  %12.3f  %12.3f     100.0       4\n",
 					instant,
 					lat,
 					lon)
