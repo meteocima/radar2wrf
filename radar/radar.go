@@ -157,12 +157,12 @@ func (data *CappiDataset) Open(filename string) {
 
 // Dimensions ...
 type Dimensions struct {
-	Lat                    []float32
-	Lon                    []float32
-	Width                  int64
-	Height                 int64
-	Instants               []time.Time
-	Cappi2, Cappi3, Cappi5 []float32
+	Lat                            []float32
+	Lon                            []float32
+	Width                          int64
+	Height                         int64
+	Instants                       []time.Time
+	Cappi2, Cappi3, Cappi4, Cappi5 []float32
 }
 
 func filenameForVar(dirname, varname, dt string) string {
@@ -176,9 +176,6 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 	if val < 0 {
 		// write(301,'(3x,f12.1,2(f12.3,i4,f12.3,2x))')
 		// hgt(i,m), rv_data(i,m), rv_qc(i,m), rv_err(i,m), rf_data(i,m), rf_qc(i,m), rf_err(i,m)
-		//                      000000000111111111122222222223333333333444444444455555555556666666666\
-		//                      123456789012345678901234567890123456789012345678901234567890123456789\
-		//		fmt.Fprintf(f, "       %8.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
 		fmt.Fprintf(f, "   %12.1f -888888.000 -88 -888888.000   -888888.000 -88 -888888.000\n", height)
 		return
 	}
@@ -187,7 +184,6 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 		f,
 		// write(301,'(3x,f12.1,2(f12.3,i4,f12.3,2x))')
 		// hgt(i,m), rv_data(i,m), rv_qc(i,m), rv_err(i,m), rf_data(i,m), rf_qc(i,m), rf_err(i,m)
-		//"       %8.1f -888888.000 -88 -888888.000   %11.3f   0       5.000\n",
 		"   %12.1f -888888.000 -88 -888888.000  %12.3f   0       5.000\n",
 		height,
 		val,
@@ -207,6 +203,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 
 	if dims.Cappi2 != nil ||
 		dims.Cappi3 != nil ||
+		dims.Cappi4 != nil ||
 		dims.Cappi5 != nil {
 		for _, l := range dims.Lon {
 			if l > maxLon {
@@ -226,6 +223,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	for i := int64(0); i < dims.Width*dims.Height; i++ {
 		f2 := float32(-1)
 		f3 := float32(-1)
+		f4 := float32(-1)
 		f5 := float32(-1)
 
 		if dims.Cappi2 != nil {
@@ -235,10 +233,16 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 		if dims.Cappi3 != nil {
 			f3 = dims.Cappi3[i]
 		}
+
+		if dims.Cappi4 != nil {
+			f4 = dims.Cappi4[i]
+		}
+
 		if dims.Cappi5 != nil {
 			f5 = dims.Cappi5[i]
 		}
-		if f2 >= 0 || f3 >= 0 || f5 >= 0 {
+
+		if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 {
 			totObs++
 		}
 	}
@@ -262,6 +266,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 
 	if dims.Cappi2 == nil &&
 		dims.Cappi3 == nil &&
+		dims.Cappi4 == nil &&
 		dims.Cappi5 == nil {
 		return
 	}
@@ -277,6 +282,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 
 			f2 := float32(-1)
 			f3 := float32(-1)
+			f4 := float32(-1)
 			f5 := float32(-1)
 
 			if dims.Cappi2 != nil {
@@ -285,11 +291,14 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			if dims.Cappi3 != nil {
 				f3 = dims.Cappi3[i]
 			}
+			if dims.Cappi4 != nil {
+				f4 = dims.Cappi4[i]
+			}
 			if dims.Cappi5 != nil {
 				f5 = dims.Cappi5[i]
 			}
 
-			if f2 >= 0 || f3 >= 0 || f5 >= 0 {
+			if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 {
 				fmt.Fprintf(
 					result,
 					//!----Write data
@@ -305,6 +314,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 
 				writeRadarData(result, f2, 2000.0)
 				writeRadarData(result, f3, 3000.0)
+				writeRadarData(result, f4, 4000.0)
 				writeRadarData(result, f5, 5000.0)
 			}
 		}
@@ -315,7 +325,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 }
 
 // Convert ...
-func Convert(dirname, dt string) (io.Reader, error) {
+func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 	dims := Dimensions{}
 	ds := &CappiDataset{}
 
@@ -355,6 +365,19 @@ func Convert(dirname, dt string) (io.Reader, error) {
 
 	} else {
 		dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
+		setDims()
+		ds.Close()
+	}
+
+	ds.Open(filenameForVar(dirname, "CAPPI4", dt))
+
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+
+	} else {
+		dims.Cappi4 = ds.ReadFloatVar("CAPPI4")
 		setDims()
 		ds.Close()
 	}
