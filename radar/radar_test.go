@@ -15,7 +15,7 @@ func assertReadLine(t *testing.T, expected string, buf *bufio.Reader) {
 
 func Test(t *testing.T) {
 	//err := oldradar.Cappi2ascii()
-	reader, err := Convert("/home/parroit/Desktop/cimarepos/radar2wrf/data", "2020072000")
+	reader, err := Convert("/home/parroit/Desktop/cimarepos/radar2wrf/data", "", "2020072000")
 	assert.NoError(t, err)
 	buf := bufio.NewReader(reader)
 
