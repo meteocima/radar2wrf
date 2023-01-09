@@ -152,6 +152,7 @@ func (data *CappiDataset) Open(filename string) {
 	}
 
 	ds, err := netcdf.OpenFile(filename, netcdf.NOWRITE)
+	fmt.Printf("OPENING FILE %s: %s\n", filename, err)
 	data.ds, data.err = &ds, err
 }
 
