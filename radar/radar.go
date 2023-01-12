@@ -152,7 +152,7 @@ func (data *CappiDataset) Open(filename string) {
 	}
 
 	ds, err := netcdf.OpenFile(filename, netcdf.NOWRITE)
-	fmt.Printf("OPENING FILE %s: %s\n", filename, err)
+	//fmt.Printf("OPENING FILE %s: %s\n", filename, err)
 	data.ds, data.err = &ds, err
 }
 
@@ -320,7 +320,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 		}
 	}
 
-	fmt.Println()
+	//fmt.Println()
 
 }
 
