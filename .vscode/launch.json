@@ -9,11 +9,12 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "/home/parroit/Desktop/cimarepos/radar2wrf/cli/cli.go",
+            "program": "${workspaceFolder}/cli/cli.go",
             "env": {},
             "args": [
-                "/home/parroit/Desktop/cimarepos/radar2wrf",
-                "2018080118"
+                "/home/parroit/repos/cima/wrfita/tmp",
+                "ob.radar.2023051418",
+                "2023051418"
             ]
         }
     ]

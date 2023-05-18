@@ -193,6 +193,8 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 }
 
 func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested time.Time) {
+	fmt.Println("writeConvertedDataTo")
+
 	defer resultW.Close()
 	result := bufio.NewWriterSize(resultW, 1000000)
 	defer result.Flush()
@@ -321,7 +323,7 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	}
 
 	//fmt.Println()
-
+	fmt.Println("DOH")
 }
 
 // Convert ...
@@ -343,7 +345,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		dims.Lon = ds.ReadFloatVar("longitude")
 		dims.Instants = ds.ReadTimeVar("time")
 	}
-
+	fmt.Println("CAPPI2")
 	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -355,7 +357,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-
+	fmt.Println("CAPPI3")
 	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -368,7 +370,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-
+	fmt.Println("CAPPI4")
 	ds.Open(filenameForVar(dirname, "CAPPI4", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -381,7 +383,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-
+	fmt.Println("CAPPI5")
 	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -404,6 +406,6 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 	if err == nil {
 		go writeConvertedDataTo(result, &dims, reqDt)
 	}
-
+	fmt.Println("END")
 	return reader, err
 }
