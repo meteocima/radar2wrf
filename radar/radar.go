@@ -384,9 +384,14 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		ds.Close()
 	}
 	fmt.Println("CAPPI5")
+	fmt.Println("ERR 000", ds.Error())
 	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
 
+	fmt.Println("ERR AAA", ds.Error())
+
 	fmt.Println("CAPPI5")
+
+	fmt.Println("ERR BBB", ds.Error())
 
 	if ds.Error() == netcdf.Error(2) {
 		fmt.Println("CAPPI5 ERRAAA")
@@ -395,14 +400,20 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		ds.err = nil
 	} else {
 		fmt.Println("CAPPI5 ERR1")
+		fmt.Println("ERR CCC", ds.Error())
 		dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
+		fmt.Println("ERR DDD", ds.Error())
+
 		fmt.Println("CAPPI5 ERR1B")
 		setDims()
+		fmt.Println("ERR EEE", ds.Error())
 		fmt.Println("CAPPI5 ERR1C")
 		ds.Close()
+		fmt.Println("ERR FFF", ds.Error())
 		fmt.Println("CAPPI5 ERR1D")
 	}
 
+	fmt.Println("ERR GGG", ds.Error())
 	if ds.err != nil {
 		fmt.Println("CAPPI5 ERR2", ds.Error())
 		return nil, ds.Error()
