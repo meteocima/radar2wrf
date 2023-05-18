@@ -345,7 +345,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		dims.Lon = ds.ReadFloatVar("longitude")
 		dims.Instants = ds.ReadTimeVar("time")
 	}
-	fmt.Println("CAPPI2")
+	fmt.Println("CAPPI2", ds.Error())
 	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -357,7 +357,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI3")
+	fmt.Println("CAPPI3", ds.Error())
 	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -370,7 +370,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI4")
+	fmt.Println("CAPPI4", ds.Error())
 	ds.Open(filenameForVar(dirname, "CAPPI4", dt))
 
 	if ds.Error() == netcdf.Error(2) {
@@ -383,8 +383,7 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI5")
-	fmt.Println("ERR 000", ds.Error())
+	fmt.Println("CAPPI5", ds.Error())
 	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
 
 	fmt.Println("ERR AAA", ds.Error())
