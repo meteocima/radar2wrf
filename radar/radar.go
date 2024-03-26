@@ -158,16 +158,15 @@ func (data *CappiDataset) Open(filename string) {
 
 // Dimensions ...
 type Dimensions struct {
-	Lat                            []float32
-	Lon                            []float32
-	Width                          int64
-	Height                         int64
-	Instants                       []time.Time
-	Cappi2, Cappi3, Cappi4, Cappi5 []float32
+	Lat                                                    []float32
+	Lon                                                    []float32
+	Width                                                  int64
+	Height                                                 int64
+	Instants                                               []time.Time
+	Cappi2, Cappi3, Cappi4, Cappi5, Cappi6, Cappi7, Cappi8 []float32
 }
 
 func filenameForVar(dirname, varname, dt string) string {
-
 	pt := fmt.Sprintf("%s/%s-%s.nc", dirname, dt, varname)
 	return pt
 }
@@ -193,7 +192,6 @@ func writeRadarData(f io.Writer, val float32, height float64) {
 }
 
 func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested time.Time) {
-	fmt.Println("writeConvertedDataTo")
 
 	defer resultW.Close()
 	result := bufio.NewWriterSize(resultW, 1000000)
@@ -207,7 +205,10 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	if dims.Cappi2 != nil ||
 		dims.Cappi3 != nil ||
 		dims.Cappi4 != nil ||
-		dims.Cappi5 != nil {
+		dims.Cappi5 != nil ||
+		dims.Cappi6 != nil ||
+		dims.Cappi7 != nil ||
+		dims.Cappi8 != nil {
 		for _, l := range dims.Lon {
 			if l > maxLon {
 				maxLon = l
@@ -228,6 +229,9 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 		f3 := float32(-1)
 		f4 := float32(-1)
 		f5 := float32(-1)
+		f6 := float32(-1)
+		f7 := float32(-1)
+		f8 := float32(-1)
 
 		if dims.Cappi2 != nil {
 			f2 = dims.Cappi2[i]
@@ -245,7 +249,19 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			f5 = dims.Cappi5[i]
 		}
 
-		if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 {
+		if dims.Cappi6 != nil {
+			f6 = dims.Cappi6[i]
+		}
+
+		if dims.Cappi7 != nil {
+			f7 = dims.Cappi7[i]
+		}
+
+		if dims.Cappi8 != nil {
+			f8 = dims.Cappi8[i]
+		}
+
+		if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 || f6 >= 0 || f7 >= 0 || f8 >= 0 {
 			totObs++
 		}
 	}
@@ -269,7 +285,10 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 	if dims.Cappi2 == nil &&
 		dims.Cappi3 == nil &&
 		dims.Cappi4 == nil &&
-		dims.Cappi5 == nil {
+		dims.Cappi5 == nil &&
+		dims.Cappi6 == nil &&
+		dims.Cappi7 == nil &&
+		dims.Cappi8 == nil {
 		return
 	}
 
@@ -286,6 +305,9 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			f3 := float32(-1)
 			f4 := float32(-1)
 			f5 := float32(-1)
+			f6 := float32(-1)
+			f7 := float32(-1)
+			f8 := float32(-1)
 
 			if dims.Cappi2 != nil {
 				f2 = dims.Cappi2[i]
@@ -299,8 +321,17 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 			if dims.Cappi5 != nil {
 				f5 = dims.Cappi5[i]
 			}
+			if dims.Cappi6 != nil {
+				f6 = dims.Cappi6[i]
+			}
+			if dims.Cappi7 != nil {
+				f7 = dims.Cappi7[i]
+			}
+			if dims.Cappi8 != nil {
+				f8 = dims.Cappi8[i]
+			}
 
-			if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 {
+			if f2 >= 0 || f3 >= 0 || f4 >= 0 || f5 >= 0 || f6 >= 0 || f7 >= 0 || f8 >= 0 {
 				fmt.Fprintf(
 					result,
 					//!----Write data
@@ -314,16 +345,30 @@ func writeConvertedDataTo(resultW io.WriteCloser, dims *Dimensions, dtRequested 
 					lat,
 					lon)
 
-				writeRadarData(result, f2, 2000.0)
-				writeRadarData(result, f3, 3000.0)
-				writeRadarData(result, f4, 4000.0)
-				writeRadarData(result, f5, 5000.0)
+				if dims.Cappi2 != nil {
+					writeRadarData(result, f2, 2000.0)
+				}
+				if dims.Cappi3 != nil {
+					writeRadarData(result, f3, 3000.0)
+				}
+				if dims.Cappi4 != nil {
+					writeRadarData(result, f4, 4000.0)
+				}
+				if dims.Cappi5 != nil {
+					writeRadarData(result, f5, 5000.0)
+				}
+				if dims.Cappi6 != nil {
+					writeRadarData(result, f6, 6000.0)
+				}
+				if dims.Cappi7 != nil {
+					writeRadarData(result, f7, 7000.0)
+				}
+				if dims.Cappi8 != nil {
+					writeRadarData(result, f8, 8000.0)
+				}
 			}
 		}
 	}
-
-	//fmt.Println()
-	fmt.Println("DOH")
 }
 
 // Convert ...
@@ -345,9 +390,8 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		dims.Lon = ds.ReadFloatVar("longitude")
 		dims.Instants = ds.ReadTimeVar("time")
 	}
-	fmt.Println("CAPPI2", ds.Error())
-	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 
+	ds.Open(filenameForVar(dirname, "CAPPI2", dt))
 	if ds.Error() == netcdf.Error(2) {
 		ds.err = nil
 		ds.Close()
@@ -357,75 +401,82 @@ func Convert(dirname, radarOutFileName, dt string) (io.Reader, error) {
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI3", ds.Error())
-	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
 
+	ds.Open(filenameForVar(dirname, "CAPPI3", dt))
 	if ds.Error() == netcdf.Error(2) {
 		ds.err = nil
 		ds.Close()
 		ds.err = nil
-
 	} else {
 		dims.Cappi3 = ds.ReadFloatVar("CAPPI3")
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI4", ds.Error())
-	ds.Open(filenameForVar(dirname, "CAPPI4", dt))
 
+	ds.Open(filenameForVar(dirname, "CAPPI4", dt))
 	if ds.Error() == netcdf.Error(2) {
 		ds.err = nil
 		ds.Close()
 		ds.err = nil
-
 	} else {
 		dims.Cappi4 = ds.ReadFloatVar("CAPPI4")
 		setDims()
 		ds.Close()
 	}
-	fmt.Println("CAPPI5", ds.Error())
+
 	ds.Open(filenameForVar(dirname, "CAPPI5", dt))
-
-	fmt.Println("ERR AAA", ds.Error())
-
-	fmt.Println("CAPPI5")
-
-	fmt.Println("ERR BBB", ds.Error())
-
 	if ds.Error() == netcdf.Error(2) {
-		fmt.Println("CAPPI5 ERRAAA")
 		ds.err = nil
 		ds.Close()
 		ds.err = nil
 	} else {
-		fmt.Println("CAPPI5 ERR1")
-		fmt.Println("ERR CCC", ds.Error())
 		dims.Cappi5 = ds.ReadFloatVar("CAPPI5")
-		fmt.Println("ERR DDD", ds.Error())
-
-		fmt.Println("CAPPI5 ERR1B")
 		setDims()
-		fmt.Println("ERR EEE", ds.Error())
-		fmt.Println("CAPPI5 ERR1C")
 		ds.Close()
-		fmt.Println("ERR FFF", ds.Error())
-		fmt.Println("CAPPI5 ERR1D")
 	}
 
-	fmt.Println("ERR GGG", ds.Error())
+	ds.Open(filenameForVar(dirname, "CAPPI6", dt))
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+	} else {
+		dims.Cappi6 = ds.ReadFloatVar("CAPPI6")
+		setDims()
+		ds.Close()
+	}
+
+	ds.Open(filenameForVar(dirname, "CAPPI7", dt))
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+	} else {
+		dims.Cappi7 = ds.ReadFloatVar("CAPPI7")
+		setDims()
+		ds.Close()
+	}
+
+	ds.Open(filenameForVar(dirname, "CAPPI8", dt))
+	if ds.Error() == netcdf.Error(2) {
+		ds.err = nil
+		ds.Close()
+		ds.err = nil
+	} else {
+		dims.Cappi8 = ds.ReadFloatVar("CAPPI8")
+		setDims()
+		ds.Close()
+	}
+
 	if ds.err != nil {
-		fmt.Println("CAPPI5 ERR2", ds.Error())
 		return nil, ds.Error()
 	}
 
-	fmt.Println("CAPPI5 DONE")
-
 	reader, result := io.Pipe()
 
-	reqDt, err := time.Parse("2006010215", dt)
+	reqDt, err := time.Parse("200601021500", dt)
 	if err == nil {
 		go writeConvertedDataTo(result, &dims, reqDt)
 	}
-	fmt.Println("END")
 	return reader, err
 }

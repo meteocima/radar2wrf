@@ -12,9 +12,9 @@
             "program": "${workspaceFolder}/cli/cli.go",
             "env": {},
             "args": [
-                "/home/parroit/repos/cima/wrfita/tmp",
-                "ob.radar.2023051418",
-                "2023051418"
+                "/home/parroit/repos/cima/radar2wrf/data",
+                "ob.radar.2024032500",
+                "202403250000"
             ]
         }
     ]
